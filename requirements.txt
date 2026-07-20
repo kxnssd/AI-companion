@@ -1,0 +1,6 @@
+mlx-lm==0.31.3
+moonshine-voice==0.0.69
+python-dotenv==1.2.2
+sounddevice==0.5.5
+azure-cognitiveservices-speech==1.50.0
+azure-core==1.41.0
