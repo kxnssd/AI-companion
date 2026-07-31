@@ -1,30 +1,40 @@
-import azure.cognitiveservices.speech as speechsdk
-from urllib.parse import urlparse
-
-from dotenv import load_dotenv
 import os
+from urllib.parse import urlparse
+import azure.cognitiveservices.speech as speechsdk
+from dotenv import load_dotenv
+
 
 class Synthesizer:
-    def __init__(self):
+    def __init__(self, target_lang: str, min_tokens_to_synth: int):
         load_dotenv()
-        self.endpoint_url = os.getenv('AZURE_SPEECH_ENDPOINT')
-        self.speech_key = os.getenv('AZURE_SPEECH_KEY')
+        self.endpoint_url = os.getenv("AZURE_SPEECH_ENDPOINT")
+        self.speech_key = os.getenv("AZURE_SPEECH_KEY")
+        self.target_lang = target_lang
+        self.min_tokens_to_synth = min_tokens_to_synth
 
-    def synthesize(self, text, lang="uk-UA"):
         parsed = urlparse(self.endpoint_url)
         base_endpoint = f"{parsed.scheme}://{parsed.netloc}"
 
-        speech_config = speechsdk.SpeechConfig(subscription=self.speech_key, endpoint=base_endpoint)
-        speech_config.set_speech_synthesis_output_format(
-                    speechsdk.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm
-                )
-        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+        self.speech_config = speechsdk.SpeechConfig(
+            subscription=self.speech_key, endpoint=base_endpoint
+        )
+        self.speech_config.set_speech_synthesis_output_format(
+            speechsdk.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm
+        )
+
+        self.speech_synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=self.speech_config
+        )
+
+    def synthesize(self, text: str):
+        if not text or not text.strip():
+            return
 
         ssml = f"""
         <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' 
-               xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='{lang}'>
+               xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='{self.target_lang}'>
             <voice name='en-US-Ava:DragonHDLatestNeural'>
-                <lang xml:lang='{lang}'>
+                <lang xml:lang='{self.target_lang}'>
                     <prosody pitch='+20%'>
                         {text}
                     </prosody>
@@ -33,13 +43,13 @@ class Synthesizer:
         </speak>
         """
 
-        result = speech_synthesizer.speak_ssml_async(ssml).get()
+        result = self.speech_synthesizer.speak_ssml(ssml)
 
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            print("Speech synthesized for text [{}]".format(text))
-        elif result.reason == speechsdk.ResultReason.Canceled:
+        if result.reason == speechsdk.ResultReason.Canceled:
             cancellation_details = result.cancellation_details
-            print("Speech synthesis canceled: {}".format(cancellation_details.reason))
             if cancellation_details.reason == speechsdk.CancellationReason.Error:
-                print("Error details: {}".format(cancellation_details.error_details))
+                print(f"TTS Error: {cancellation_details.error_details}")
 
+    def stop(self):
+        if self.speech_synthesizer:
+            self.speech_synthesizer.stop_speaking_async()
