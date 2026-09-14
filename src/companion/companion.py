@@ -17,6 +17,7 @@ class Companion:
         min_tokens_to_synth: int = 100,
     ):
         self.stt = STT(stt_language)
+#, model_repo="mlx-community/Qwen3-14B-4bit"
         self.llm = Inference(max_tokens)
         self.synt = Synthesizer(synt_language, min_tokens_to_synth)
 

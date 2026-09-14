@@ -1,7 +1,8 @@
 import os
+from dotenv import load_dotenv
+
 from urllib.parse import urlparse
 import azure.cognitiveservices.speech as speechsdk
-from dotenv import load_dotenv
 
 
 class Synthesizer:
